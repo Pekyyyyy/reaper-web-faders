@@ -154,7 +154,16 @@
 
   .strip.no-pan .opt-pan, .strip.no-arm .opt-arm, .strip.no-mon .opt-mon, .strip.no-sends .opt-sends,
   .strip.no-recv .opt-recv, .strip.no-fx .opt-fx, .strip.no-scale .opt-scale,
-  .strip.no-fscale .opt-fscale, .strip.no-level .opt-level { display: none !important; }
+  .strip.no-fscale .opt-fscale, .strip.no-level .opt-level, .strip.no-chain .opt-chain { display: none !important; }
+  .panbox { position: relative; height: 40px; background: var(--graph); border: 1px solid var(--line); border-radius: 6px;
+    touch-action: none; cursor: ew-resize; }
+  .panbox.drag { border-color: var(--accent); }
+  .panbox .lbl { position: absolute; left: 5px; top: 3px; font-size: 10px; font-weight: 700; color: var(--dim); letter-spacing: .5px; }
+  .panbox .pv { position: absolute; right: 6px; top: 3px; font: 600 11px ui-monospace, Menlo, monospace; }
+  .panbox .pt { position: absolute; left: 8px; right: 8px; bottom: 8px; height: 10px; background: #0e1012; border-radius: 3px; }
+  .panbox .pt .c { position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: #5d656f; }
+  .panbox .pt b { position: absolute; top: 0; bottom: 0; background: var(--accent); opacity: .55; border-radius: 2px; }
+  .panbox .pt span { position: absolute; top: -4px; bottom: -4px; width: 4px; margin-left: -2px; background: #e6e8eb; border-radius: 2px; }
   .lvl { position: relative; background: var(--graph); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
   .lvl canvas { height: 50px; }   /* same box as the EQ mini */
   .strip.eqrow .lvl canvas { height: 56px; }
@@ -548,7 +557,7 @@ $("hiddenBtn").onclick = function () {
 // Stored in REAPER (persistent ExtState WEBFADERS/store) so it survives reloads, restarts and is shared by
 // all devices; localStorage is only a cache for the first paint. The active bank is per device.
 var VIEW_OPTS = [["strip", "Show strip"], ["level", "Level history"], ["eq", "EQ"], ["comp", "Compressor"], ["eqrow", "EQ on its own row"],
-  ["fx", "Other FX + chain button"], ["pan", "Pan"], ["arm", "Record arm"],
+  ["fx", "Other FX"], ["chain", "FX chain button"], ["pan", "Pan"], ["arm", "Record arm"],
   ["mon", "Input monitoring"], ["sends", "Sends"], ["recv", "Receives"], ["fscale", "Fader scale"], ["scale", "Meter scale"]];
 var VIEW_DEFAULTS = { eqrow: false };   // anything not listed defaults to shown
 // starting setup for each bank when REAPER has none saved: bank 1 is a compact mixing view, 2 and 3 show everything
@@ -1053,7 +1062,7 @@ function buildStrip(i) {
     });
   }
   if (fxs && fxs.length || (!bridgeOk && t.flags & 4)) {
-    s.fxall = el("button", "fxall opt-fx", "FX chain ON");
+    s.fxall = el("button", "fxall opt-chain", "FX chain ON");
     s.fxall.onclick = function () { wwr_req("SET/TRACK/" + i + "/FX/-1"); };
     s.fxbox.appendChild(s.fxall);
   } else {
@@ -1061,19 +1070,15 @@ function buildStrip(i) {
   }
   s.top.appendChild(s.fxbox);
 
-  // pan
-  var pr = el("div", "knobrow opt-pan", "Pan");
-  s.pan = el("input"); s.pan.type = "range"; s.pan.min = -1; s.pan.max = 1; s.pan.step = 0.01;
-  s.panTxt = el("span");
-  s.pan.oninput = function () {
-    setPend("pan" + i, +s.pan.value);
-    wwr_req("SET/TRACK/" + i + "/PAN/" + s.pan.value);
-    s.panTxt.textContent = mkpanstr(+s.pan.value);
-  };
-  s.pan.ondblclick = function () { s.pan.value = 0; s.pan.oninput(); };
-  guardDrag(s.pan, { set drag(v) { s.panDrag = v; } });
-  pr.appendChild(s.pan); pr.appendChild(s.panTxt);
-  s.top.appendChild(pr);
+  // pan: the whole box is the control
+  s.panBox = el("div", "panbox opt-pan",
+    '<div class="lbl">PAN</div><div class="pv"></div><div class="pt"><i class="c"></i><b></b><span></span></div>');
+  s.panBox.title = "Drag left/right to pan, double-tap to center";
+  s.panTxt = s.panBox.querySelector(".pv");
+  s.panFill = s.panBox.querySelector(".pt b");
+  s.panMark = s.panBox.querySelector(".pt span");
+  attachPan(s, i);
+  s.top.appendChild(s.panBox);
 
   // fader + meter
   var fw = el("div", "faderwrap");
@@ -1208,7 +1213,7 @@ function selectTrack(i, additive) {
   render();
 }
 // controls keep their own behavior; anything else on the strip selects
-var SELECT_IGNORE = "button, input, select, .fader, .knob, .mini, .meter, .sendrow, .sect2 > button";
+var SELECT_IGNORE = "button, input, select, .fader, .knob, .mini, .meter, .panbox, .sendrow, .sect2 > button";
 function attachSelect(elm, i) {
   var timer = null, longDone = false;
   elm.addEventListener("pointerdown", function (e) {
@@ -1226,6 +1231,43 @@ function attachSelect(elm, i) {
     selectTrack(i, e.metaKey || e.ctrlKey || e.shiftKey);
   });
   elm.addEventListener("contextmenu", function (e) { if (!e.target.closest(SELECT_IGNORE)) e.preventDefault(); });   // long-press menu on touch
+}
+
+function drawPan(s, pan) {
+  var x = (pan + 1) / 2 * 100;
+  s.panFill.style.left = Math.min(50, x) + "%";
+  s.panFill.style.width = Math.abs(x - 50) + "%";
+  s.panMark.style.left = x + "%";
+  setTxt(s.panTxt, Math.abs(pan) < 0.005 ? "C" : (Math.abs(pan) * 100).toFixed(0) + (pan < 0 ? "L" : "R"));
+}
+function attachPan(s, i) {
+  var box = s.panBox, start = 0, startPan = 0, lastTap = 0;
+  function set(v) {
+    v = clamp(Math.round(v * 100) / 100, -1, 1);
+    setPend("pan" + i, v);
+    wwr_req("SET/TRACK/" + i + "/PAN/" + v);
+    drawPan(s, v);
+    return v;
+  }
+  function cur() { return isPend("pan" + i) ? pend["pan" + i].v : tracks[i].pan; }
+  box.addEventListener("pointerdown", function (e) {
+    e.preventDefault();
+    var now = Date.now();
+    if (now - lastTap < 300) { set(0); lastTap = 0; return; }   // double tap -> center
+    lastTap = now;
+    s.panDrag = true; start = e.clientX; startPan = cur();
+    box.setPointerCapture(e.pointerId);
+    box.classList.add("drag");
+  });
+  box.addEventListener("pointermove", function (e) {
+    if (!s.panDrag) return;
+    // full box width = full L..R range; Shift for fine control
+    set(startPan + (e.clientX - start) / box.clientWidth * 2 * (e.shiftKey ? 0.25 : 1));
+  });
+  function end() { s.panDrag = false; box.classList.remove("drag"); }
+  box.addEventListener("pointerup", end);
+  box.addEventListener("pointercancel", end);
+  box.addEventListener("wheel", function (e) { e.preventDefault(); set(cur() + (e.deltaX || -e.deltaY) / 500); }, { passive: false });
 }
 
 function attachFader(s, onVol, getVol) {
@@ -1291,7 +1333,7 @@ function updateStrip(i) {
   setCls(s.pk, "pk opt-scale" + (s.peakHold > 0 ? " clip" : ""));
 
   var pan = resolve("pan" + i, t.pan, 0.006);
-  if (!s.panDrag) { s.pan.value = pan; setTxt(s.panTxt, mkpanstr(pan)); }
+  if (!s.panDrag) drawPan(s, pan);
   setCls(s.m, "m" + (t.flags & 8 ? " on" : ""));
   setCls(s.so, "s" + (t.flags & 16 ? " on" : ""));
   if (s.r) setCls(s.r, "r opt-arm" + (t.flags & 64 ? " on" : ""));
@@ -1309,7 +1351,7 @@ function updateStrip(i) {
   });
   if (s.fxall) {
     var chainOff = fxState[i] && fxState[i].ce === 0;
-    setCls(s.fxall, "fxall opt-fx" + (chainOff ? " off" : ""));
+    setCls(s.fxall, "fxall opt-chain" + (chainOff ? " off" : ""));
     setTxt(s.fxall, chainOff ? "FX chain BYPASSED" : "FX chain ON");
   }
 
