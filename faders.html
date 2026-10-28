@@ -11,7 +11,7 @@
   :root {
     --bg: #17191c; --panel: #212429; --panel2: #2a2e34; --line: #33383f;
     --text: #e6e8eb; --dim: #8b929b; --accent: #4fa3ff;
-    --rec: #ff3b3b; --mute: #f2b134; --solo: #3fd17a; --arm: #ff5a5a; --fx: #4fa3ff;
+    --rec: #ff3b3b; --mute: #e5484d; --solo: #f5c518; --ok: #3fd17a; --arm: #ff5a5a; --fx: #4fa3ff;
     --graph: #101215; --grid: #23272d; --curve: #59b6ff; --comp: #ffb347;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -33,7 +33,7 @@
   #recBtn .dot { width: 24px; height: 24px; border-radius: 50%; background: var(--rec); opacity: .55; }
   #recBtn.on { background: var(--rec); border-color: var(--rec); animation: pulse 1.2s infinite; }
   #recBtn.on .dot { background: #fff; opacity: 1; border-radius: 4px; width: 20px; height: 20px; }
-  #playBtn.on { background: #1f5f38; border-color: var(--solo); color: #bff5d2; }
+  #playBtn.on { background: #1f5f38; border-color: var(--ok); color: #bff5d2; }
   @keyframes pulse { 50% { box-shadow: 0 0 0 8px rgba(255,59,59,.25); } }
   #clock { display: flex; flex-direction: column; min-width: 150px; }
   #time { font: 600 30px/1 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: 1px; }
@@ -46,7 +46,7 @@
   #hiddenBtn.on { border-color: var(--accent); color: var(--accent); }
   #bridge { font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 6px; }
   #bridge i { width: 8px; height: 8px; border-radius: 50%; background: #555; display: inline-block; }
-  #bridge.ok i { background: var(--solo); }
+  #bridge.ok i { background: var(--ok); }
 
   /* ---------- strips ---------- */
   #mixer { display: flex; gap: 8px; padding: 12px 16px 24px; overflow-x: auto; align-items: stretch;
@@ -57,8 +57,9 @@
   .strip.hidden { opacity: .45; }
   .strip.hidden .hideBtn { border-color: var(--accent); color: var(--accent); opacity: 1; }
   .name { font-weight: 700; text-align: center; padding: 6px 4px; border-radius: 6px; background: var(--panel2);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-top: 3px solid transparent; margin-right: 26px; }
-  .hideBtn { position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; border-radius: 6px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-top: 3px solid transparent; }
+  .tools { display: flex; justify-content: flex-end; gap: 2px; margin: -2px -2px 0 0; }
+  .hideBtn { width: 26px; height: 26px; border-radius: 6px;
     background: transparent; border-color: transparent; opacity: .6; display: grid; place-items: center; }
   .hideBtn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
 
@@ -124,8 +125,8 @@
   .db.clip { color: var(--rec); }
   .btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
   .btns button { height: 32px; font-weight: 700; font-size: 12px; }
-  .btns .m.on { background: var(--mute); color: #222; border-color: var(--mute); }
-  .btns .s.on { background: var(--solo); color: #102; border-color: var(--solo); }
+  .btns .m.on { background: var(--mute); color: #fff; border-color: var(--mute); }
+  .btns .s.on { background: var(--solo); color: #222; border-color: var(--solo); }
   .btns .r.on { background: var(--arm); color: #fff; border-color: var(--arm); }
   .btns .mon.on { background: #6a5cff; color: #fff; border-color: #6a5cff; }
   .btns { grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); }
@@ -142,7 +143,7 @@
   .sendrow .lbl { flex: 1; min-width: 0; color: var(--text); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sendrow .ch { color: var(--dim); font: 10px ui-monospace, Menlo, monospace; white-space: nowrap; }
   .sendrow .mute { flex: 0 0 22px; height: 20px; font-size: 10px; font-weight: 700; padding: 0; }
-  .sendrow .mute.on { background: var(--mute); color: #222; border-color: var(--mute); }
+  .sendrow .mute.on { background: var(--mute); color: #fff; border-color: var(--mute); }
   .sendrow.muted .lbl, .sendrow.muted .v { opacity: .5; }
   .sendrow input { flex: 1; min-width: 0; }
   .sendrow .v { width: 36px; text-align: right; color: var(--text); font: 11px ui-monospace, Menlo, monospace; }
@@ -160,12 +161,9 @@
   #banks button + button { border-left: 1px solid var(--line); }
   #banks button.on { background: var(--accent); color: #fff; }
   #banks span { align-self: center; padding: 0 8px; font-size: 11px; color: var(--dim); }
-  .cfgBtn { position: absolute; top: 6px; right: 34px; width: 26px; height: 26px; border-radius: 6px; font-size: 14px;
+  .cfgBtn { width: 26px; height: 26px; border-radius: 6px; font-size: 14px;
     background: transparent; border-color: transparent; opacity: .6; display: grid; place-items: center; }
   .cfgBtn.custom { color: var(--accent); opacity: 1; }
-  .strip .name { margin-right: 54px; }
-  .strip.master .name { margin-right: 28px; }
-  .strip.master .cfgBtn { right: 6px; }
   #stripMenu { position: fixed; z-index: 15; display: none; min-width: 210px; background: var(--panel2);
     border: 1px solid var(--line); border-radius: 10px; padding: 6px; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
   #stripMenu.open { display: block; }
@@ -231,7 +229,7 @@
   .ctrlhead { display: flex; gap: 8px; align-items: center; }
   .ctrlhead select { flex: 1; padding: 7px 8px; font-size: 13px; }
   .ctrlhead button { padding: 7px 10px; font-size: 13px; }
-  .ctrlhead button.on { color: var(--solo); border-color: var(--solo); }
+  .ctrlhead button.on { color: var(--ok); border-color: var(--ok); }
   .sect { font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: .8px; margin-top: 4px; }
   .knobs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 6px; }
   .knob { display: flex; flex-direction: column; align-items: center; gap: 2px; touch-action: none; cursor: ns-resize; }
@@ -340,6 +338,17 @@ function resolve(k, server, tol) {
   return o.v;
 }
 function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+// Polls redraw ~15x/s. Rewriting an element's content between pointerdown and pointerup makes the browser
+// drop the click, so only touch the DOM when a value actually changes.
+function setCls(e, v) { if (e.className !== v) e.className = v; }
+function setTxt(e, v) { if (e.textContent !== v) e.textContent = v; }
+function setHtml(e, v) { if (e._html !== v) { e._html = v; e.innerHTML = v; } }
+function setTitle(e, v) { if (e.title !== v) e.title = v; }
+var pointerIsDown = false;   // strips are not rebuilt while a finger/mouse is pressed
+["pointerdown", "pointerup", "pointercancel"].forEach(function (ev) {
+  document.addEventListener(ev, function () { pointerIsDown = ev === "pointerdown"; }, true);
+});
+window.addEventListener("blur", function () { pointerIsDown = false; });
 function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
 function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
 function dec(s) { try { return decodeURIComponent(s); } catch (e) { return s; } }
@@ -484,7 +493,7 @@ function wwr_onreply(results) {
         if (m) nativeVis[m[1]] = resolve("vis" + m[1], parseFloat(tok[1]) > 0.5 ? 1 : 0, 0) == 1;
     }
   }
-  bridgeOk = bridgeSeen && Date.now() - bridgeSeen < 2000;
+  bridgeOk = bridgeSeen && Date.now() - bridgeSeen < 5000;
   $("bridge").className = bridgeOk ? "ok" : "";
   render();
 }
@@ -503,8 +512,8 @@ function onTransport(tok) {
   $("posStr").textContent = tok[5];
   $("state").textContent = { 0: "STOPPED", 1: "PLAYING", 2: "PAUSED", 5: "RECORDING", 6: "REC PAUSED" }[playstate] || "—";
   $("state").className = rec ? "rec" : "";
-  $("recBtn").className = "tbtn" + (rec ? " on" : "");
-  $("playBtn").className = "tbtn" + (playstate == 1 ? " on" : "");
+  setCls($("recBtn"), "tbtn" + (rec ? " on" : ""));
+  setCls($("playBtn"), "tbtn" + (playstate == 1 ? " on" : ""));
 }
 $("recBtn").onclick = function () { wwr_req((playstate & 4) ? 1016 : 1013); };   // stop or record
 $("playBtn").onclick = function () { wwr_req(playstate & 1 ? 1008 : 1007); };     // pause or play
@@ -935,14 +944,14 @@ function render() {
     if (!vis) nHidden++;
     if (vis || showHidden) shown.push(i);
   });
-  $("hiddenBtn").textContent = (showHidden ? "Hide hidden" : "Show hidden") + (nHidden ? " (" + nHidden + ")" : "");
-  $("hiddenBtn").className = showHidden ? "on" : "";
+  setTxt($("hiddenBtn"), (showHidden ? "Hide hidden" : "Show hidden") + (nHidden ? " (" + nHidden + ")" : ""));
+  setCls($("hiddenBtn"), showHidden ? "on" : "");
 
   var sig = shown.map(function (i) {
     var fx = fxState[i] ? fxState[i].fx.map(function (f) { return f.n + f.k; }).join(",") : "";
     return i + ":" + tracks[i].name + ":" + tracks[i].sendcnt + ":" + tracks[i].recvcnt + ":" + fx;
   }).join("|") + bridgeOk + activeBank + storeStr;
-  if (sig !== layoutSig) {
+  if (sig !== layoutSig && !pointerIsDown) {
     layoutSig = sig;
     var mixer = $("mixer");
     mixer.innerHTML = "";
@@ -965,17 +974,19 @@ function alignStrips() {
 function buildStrip(i) {
   var t = tracks[i], s = { root: el("div", "strip" + (i == 0 ? " master" : "")) };
   s.name = el("div", "name", esc(trackName(i)));
-  s.top = el("div", "top");          // name + FX + pan; equalized across strips so faders line up
-  s.top.appendChild(s.name);
+  s.name.title = trackName(i);
+  s.top = el("div", "top");          // tools + FX + pan; equalized across strips so faders line up
+  var tools = el("div", "tools");
+  s.top.appendChild(tools);
   s.root.appendChild(s.top);
   s.cfg = el("button", "cfgBtn", "⚙");
   s.cfg.title = "Choose what this strip shows in the current bank";
   s.cfg.onclick = function (e) { e.stopPropagation(); if (stripMenuFor === i) { $("stripMenu").classList.remove("open"); stripMenuFor = null; } else openStripMenu(i, s.cfg); };
-  s.root.appendChild(s.cfg);
+  tools.appendChild(s.cfg);
   if (i != 0) {
     s.hide = el("button", "hideBtn");
     s.hide.onclick = function () { setVisible(i, !isVisible(i)); };
-    s.root.appendChild(s.hide);
+    tools.appendChild(s.hide);
   }
 
   // FX: graphical minis for ReaEQ/ReaComp, buttons for anything else
@@ -1082,6 +1093,7 @@ function buildStrip(i) {
     b.appendChild(s.r); b.appendChild(s.mon);
   }
   s.root.appendChild(b);
+  s.root.appendChild(s.name);       // track name under the M/S row, full strip width
 
   // sends / receives (collapsible)
   s.sends = [];
@@ -1173,58 +1185,58 @@ function updateStrip(i) {
   var s = strips[i], t = tracks[i];
   if (!s || !t) return;
   var vis = isVisible(i);
-  s.root.className = "strip" + (i == 0 ? " master" : "") + (vis ? "" : " hidden") + stripCls(i);
-  s.cfg.className = "cfgBtn" + (bankObj().tr[trKey(i)] ? " custom" : "");
-  if (s.hide) { s.hide.innerHTML = vis ? EYE : EYE_OFF; s.hide.title = vis ? "Hide track in REAPER" : "Unhide track"; }
+  setCls(s.root, "strip" + (i == 0 ? " master" : "") + (vis ? "" : " hidden") + stripCls(i));
+  setCls(s.cfg, "cfgBtn" + (bankObj().tr[trKey(i)] ? " custom" : ""));
+  if (s.hide) { setHtml(s.hide, vis ? EYE : EYE_OFF); setTitle(s.hide, vis ? "Hide track in REAPER" : "Unhide track"); }
   s.name.style.borderTopColor = trackColor(t.color) || "transparent";
 
   drawFader(s, resolve("vol" + i, t.vol, Math.max(1e-6, t.vol * 0.001)));
   var pk = t.peak / 10; // dBFS
   s.meterBar.style.height = (meterPos(pk) * 100) + "%";
   if (pk > s.peakHold) s.peakHold = pk;
-  s.pk.textContent = s.peakHold <= -149 ? "peak -inf" : "peak " + (s.peakHold > 0 ? "+" : "") + s.peakHold.toFixed(1);
-  s.pk.className = "pk opt-scale" + (s.peakHold > 0 ? " clip" : "");
+  setTxt(s.pk, s.peakHold <= -149 ? "peak -inf" : "peak " + (s.peakHold > 0 ? "+" : "") + s.peakHold.toFixed(1));
+  setCls(s.pk, "pk opt-scale" + (s.peakHold > 0 ? " clip" : ""));
 
   var pan = resolve("pan" + i, t.pan, 0.006);
-  if (!s.panDrag) { s.pan.value = pan; s.panTxt.textContent = mkpanstr(pan); }
-  s.m.className = "m" + (t.flags & 8 ? " on" : "");
-  s.so.className = "s" + (t.flags & 16 ? " on" : "");
-  if (s.r) s.r.className = "r opt-arm" + (t.flags & 64 ? " on" : "");
-  if (s.mon) { s.mon.className = "mon opt-mon" + (t.flags & 384 ? " on" : ""); s.mon.textContent = t.flags & 256 ? "A" : "◉"; }
+  if (!s.panDrag) { s.pan.value = pan; setTxt(s.panTxt, mkpanstr(pan)); }
+  setCls(s.m, "m" + (t.flags & 8 ? " on" : ""));
+  setCls(s.so, "s" + (t.flags & 16 ? " on" : ""));
+  if (s.r) setCls(s.r, "r opt-arm" + (t.flags & 64 ? " on" : ""));
+  if (s.mon) { setCls(s.mon, "mon opt-mon" + (t.flags & 384 ? " on" : "")); setTxt(s.mon, t.flags & 256 ? "A" : "◉"); }
 
   var fxs = fxState[i] ? fxState[i].fx : [];
   s.fxitems.forEach(function (item, fi) {
     var f = fxs[fi];
     if (!f) return;
     var off = !f.e;
-    item.className = (item.kind ? "mini " + item.kind : "fxrow opt-fx") + (off ? " off" : "");
-    item.pwr.textContent = off ? "OFF" : "ON";
+    setCls(item, (item.kind ? "mini " + item.kind : "fxrow opt-fx") + (off ? " off" : ""));
+    setTxt(item.pwr, off ? "OFF" : "ON");
     if (item.kind === "eq") drawEq(item.cv, i, fi);
     else if (item.kind === "comp") { drawComp(item.cv, i, fi); if (item.knob) item.knob.update(); }
   });
   if (s.fxall) {
     var chainOff = fxState[i] && fxState[i].ce === 0;
-    s.fxall.className = "fxall opt-fx" + (chainOff ? " off" : "");
-    s.fxall.textContent = chainOff ? "FX chain BYPASSED" : "FX chain ON";
+    setCls(s.fxall, "fxall opt-fx" + (chainOff ? " off" : ""));
+    setTxt(s.fxall, chainOff ? "FX chain BYPASSED" : "FX chain ON");
   }
 
   s.sends.forEach(function (o) {
     var sd = sends[i + "/" + o.k];
     if (!sd) return;
-    o.lbl.textContent = (o.recv ? "← " : "→ ") + (sd.dest < 0 ? "HW out" : trackName(sd.dest));
+    setTxt(o.lbl, (o.recv ? "← " : "→ ") + (sd.dest < 0 ? "HW out" : trackName(sd.dest)));
     // channel routing from the bridge: "src>dst", 1-based; receives list the source track's channels first
     var rt = fxState[i] && (o.recv ? fxState[i].rc : fxState[i].sd), spec = rt && rt[o.recv ? -o.k - 1 : o.k];
     if (spec) {
       var pr = spec.split(">");
-      o.ch.textContent = "ch " + pr[0] + " → " + pr[1];
-      o.ch.title = o.recv ? "Source track channels " + pr[0] + " into this track's channels " + pr[1]
-        : "This track's channels " + pr[0] + " into " + (sd.dest < 0 ? "hardware outputs " : "channels ") + pr[1];
-    } else o.ch.textContent = "";
-    o.lbl.title = o.lbl.textContent + (o.ch.title ? " — " + o.ch.title : "");
-    o.mute.className = "mute" + (sd.mute ? " on" : "");
-    o.row.className = "sendrow" + (sd.mute ? " muted" : "");
+      setTxt(o.ch, "ch " + pr[0] + " → " + pr[1]);
+      setTitle(o.ch, o.recv ? "Source track channels " + pr[0] + " into this track's channels " + pr[1]
+        : "This track's channels " + pr[0] + " into " + (sd.dest < 0 ? "hardware outputs " : "channels ") + pr[1]);
+    } else setTxt(o.ch, "");
+    setTitle(o.lbl, o.lbl.textContent + (o.ch.title ? " — " + o.ch.title : ""));
+    setCls(o.mute, "mute" + (sd.mute ? " on" : ""));
+    setCls(o.row, "sendrow" + (sd.mute ? " muted" : ""));
     var sv = resolve("send" + i + "/" + o.k, sd.vol, Math.max(1e-6, sd.vol * 0.001));
-    if (!o.drag) { o.r.value = vol2pos(sv); o.v.textContent = dbstr(sv); }
+    if (!o.drag) { o.r.value = vol2pos(sv); setTxt(o.v, dbstr(sv)); }
   });
 }
 
@@ -1308,19 +1320,19 @@ function updatePopup() {
   if (!fx) { closePopup(); return; }
   var sig = t + "/" + f + "/" + fx.n + "/" + fx.p.length + "/" + popup.sel + "/" + (fx.bt ? fx.bt.join(",") : "");
   if (sig !== popup.sig) { popup.sig = sig; buildPopup(); }
-  $("cardOn").textContent = fx.e ? "ON" : "BYPASSED";
-  $("cardOn").className = fx.e ? "on" : "";
+  setTxt($("cardOn"), fx.e ? "ON" : "BYPASSED");
+  setCls($("cardOn"), fx.e ? "on" : "");
   if (popup.kind === "eq") {
     popup.geom = drawEq(popup.cv, t, f, { big: true, sel: popup.sel });
-    popup.chips.forEach(function (ch, b) { ch.className = "band" + (fx.be[b] == 1 ? "" : " off") + (b === popup.sel ? " sel" : ""); });
+    popup.chips.forEach(function (ch, b) { setCls(ch, "band" + (fx.be[b] == 1 ? "" : " off") + (b === popup.sel ? " sel" : "")); });
     if (popup.enBtn) {
       var on = fx.be[popup.sel] == 1;
-      popup.enBtn.textContent = on ? "Band on" : "Band off";
-      popup.enBtn.className = on ? "on" : "";
+      setTxt(popup.enBtn, on ? "Band on" : "Band off");
+      setCls(popup.enBtn, on ? "on" : "");
     }
   } else if (popup.kind === "comp") {
     popup.geom = drawComp(popup.cv, t, f, { big: true });
-    popup.toggles.forEach(function (b) { b.className = pv(t, f, b.p) > 0.5 ? "on" : ""; });
+    popup.toggles.forEach(function (b) { setCls(b, pv(t, f, b.p) > 0.5 ? "on" : ""); });
   } else {
     popup.sliders.forEach(function (o) {
       o.val.textContent = fmtParam(t, f, o.p);
