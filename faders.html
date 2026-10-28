@@ -512,17 +512,17 @@ var VIEW_OPTS = [["strip", "Show strip"], ["eq", "EQ"], ["comp", "Compressor"], 
   ["fx", "Other FX + chain button"], ["pan", "Pan"], ["arm", "Record arm"],
   ["mon", "Input monitoring"], ["sends", "Sends"], ["recv", "Receives"], ["scale", "Meter scale"]];
 var VIEW_DEFAULTS = { eqrow: false };   // anything not listed defaults to shown
-var store = { banks: [{}, {}, {}], expanded: {} }, storeStr = "", storeLoaded = false, lastLocalSave = 0, saveTimer = null;
+// starting setup for each bank when REAPER has none saved: bank 1 is a compact mixing view, 2 and 3 show everything
+var DEFAULT_BANKS = [
+  { def: { eqrow: true, pan: false, arm: false, mon: false, sends: false, recv: false }, tr: {}, stripW: 110 },
+  {}, {}
+];
+function defaultBank(k) { return JSON.parse(JSON.stringify(DEFAULT_BANKS[k] || {})); }
+var store = { banks: [defaultBank(0), defaultBank(1), defaultBank(2)], expanded: {} }, storeStr = "", storeLoaded = false, lastLocalSave = 0, saveTimer = null;
 var activeBank = 0;
 try {
   var cached = localStorage.getItem("faders.store");
   if (cached) { store = JSON.parse(cached); storeStr = cached; }
-  else {   // migrate the earlier single view setting into bank 1
-    var old = JSON.parse(localStorage.getItem("faders.view") || "{}");
-    store.banks[0] = { def: old, stripW: old.stripW };
-    store.expanded = JSON.parse(localStorage.getItem("faders.expanded") || "{}");
-    delete store.banks[0].def.stripW;
-  }
   activeBank = clamp(+localStorage.getItem("faders.bank") || 0, 0, 2);
 } catch (e) {}
 var expanded = store.expanded || (store.expanded = {});
@@ -606,6 +606,9 @@ function buildViewMenu() {
     bt.onclick = function () { for (var i in tracks) { expanded[trKey(i) + "/s"] = a[1]; expanded[trKey(i) + "/r"] = a[1]; } viewChanged(); };
     menu.appendChild(bt);
   });
+  var df = el("button", "mbtn", "Reset bank " + (activeBank + 1) + " to default");
+  df.onclick = function () { store.banks[activeBank] = defaultBank(activeBank); viewChanged(); };
+  menu.appendChild(df);
   var rs = el("button", "mbtn", "Clear per-strip choices in bank " + (activeBank + 1));
   rs.onclick = function () { b.tr = {}; viewChanged(); };
   menu.appendChild(rs);
