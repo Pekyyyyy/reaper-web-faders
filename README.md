@@ -11,14 +11,29 @@ A touch-friendly mixer for REAPER's built-in web remote. It runs in any browser 
 - **Hide/unhide tracks** in REAPER's track view and mixer.
 - **View banks 1/2/3:** each bank stores which items every strip shows (EQ, compressor, EQ on its own row, other FX, pan, arm, monitoring, sends, receives, meter scale, the strip itself) and the strip width. Banks are saved inside REAPER, so they survive page reloads and REAPER restarts and are shared by all devices. Each device remembers which bank it last used.
 
-## Files
+## Install
+
+Download the zip for your system from the [latest release](https://github.com/Pekyyyyy/reaper-web-faders/releases/latest) and unzip it.
+
+- **macOS:** right-click `install.command` → **Open** (the first time, macOS asks you to confirm because the file was downloaded).
+- **Windows:** double-click `install.bat`.
+
+The installer puts everything into your REAPER resource folder. That needs no admin rights, and REAPER updates don't overwrite it. It also adds the FX bridge to `Scripts/__startup.lua` and starts the bridge right away if REAPER is running. Running it again updates an existing install. For a portable REAPER, pass its folder: `./install.command /path/to/REAPER` or `install.bat -ResourcePath D:\REAPER`.
+
+Then, if you haven't already, set up the web interface in REAPER: **Preferences → Control/OSC/Web → Add → Web browser interface**. Pick a port (e.g. 8889) and choose `faders.html` as the default interface. Open `http://<your-computer-ip>:<port>/` on your phone or tablet.
+
+## Manual install
+
+### Files
 
 | File | Goes to |
 | --- | --- |
-| `faders.html` | REAPER's web root: `REAPER.app/Contents/Plugins/reaper_www_root/` (macOS) or `<REAPER>\Plugins\reaper_www_root\` (Windows). The page uses the `main.js` that ships with REAPER in that same folder. |
+| `faders.html` | `<REAPER resource path>/reaper_www_root/faders.html`. REAPER serves pages from here first and falls back to its built-in web root for `main.js`. |
 | `reaper-scripts/web_fx_bridge.lua` | `<REAPER resource path>/Scripts/WebRemote/web_fx_bridge.lua` |
 
-## Setup
+The resource path is shown in REAPER under **Options → Show REAPER resource path**. Usually it's `~/Library/Application Support/REAPER` on macOS and `%APPDATA%\REAPER` on Windows.
+
+### Setup
 
 1. Copy the files as shown above.
 2. In REAPER, open **Preferences → Control/OSC/Web**, then **Add → Web browser interface**. Pick a port (e.g. 8889) and set the default interface to `faders.html`.
