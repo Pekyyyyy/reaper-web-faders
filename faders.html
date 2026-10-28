@@ -49,31 +49,40 @@
   #bridge.ok i { background: var(--ok); }
 
   /* ---------- strips ---------- */
-  #mixer { display: flex; gap: 8px; padding: 12px 16px 24px; overflow-x: auto; align-items: stretch;
+  body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+  #mixer { flex: 1 1 auto; min-height: 0; overflow: auto;
+    display: flex; gap: 8px; padding: 12px 16px; align-items: stretch;
     -webkit-overflow-scrolling: touch; }
   .strip { flex: 0 0 var(--stripW, 172px); min-width: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
-    display: flex; flex-direction: column; gap: 8px; padding: 8px; position: relative; }
+    display: flex; flex-direction: column; gap: 6px; padding: 6px 8px; position: relative; }
   .strip.master { border-color: #46505c; }
   .strip.hidden { opacity: .45; }
   .strip.hidden .hideBtn { border-color: var(--accent); color: var(--accent); opacity: 1; }
-  .name { font-weight: 700; text-align: center; padding: 6px 4px; border-radius: 6px; background: var(--panel2);
+  .name { font-weight: 700; font-size: 13px; text-align: center; padding: 2px 4px; border-radius: 5px; background: var(--panel2);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-top: 3px solid transparent; }
   .strip { cursor: pointer; }
   .strip .name { transition: background .1s; }
   .strip.sel { background: #26303c; }
   .strip.sel .name { background: rgba(79,163,255,.22); color: #d6e8ff; }
   .tools { display: flex; justify-content: flex-end; gap: 2px; margin: -2px -2px 0 0; }
-  .hideBtn { width: 26px; height: 26px; border-radius: 6px;
+  .hideBtn { width: 24px; height: 20px; border-radius: 5px;
     background: transparent; border-color: transparent; opacity: .6; display: grid; place-items: center; }
-  .hideBtn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
+  .hideBtn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; }
 
   .fxbox { display: flex; flex-direction: column; gap: 6px; min-height: 30px; }
   .mini { position: relative; border: 1px solid var(--line); border-radius: 6px; overflow: hidden;
     background: var(--graph); cursor: pointer; }
   .mini canvas { height: 50px; }
   .minis { display: flex; gap: 4px; flex-wrap: wrap; align-items: stretch; }
-  .top { display: flex; flex-direction: column; gap: 8px; }
-  .top .fxbox { flex: 1; }
+  .top { display: flex; flex-direction: column; gap: 6px; }
+  .tview { position: relative; overflow: hidden; }
+  .tinner { position: relative; display: flex; flex-direction: column; gap: 6px; transition: transform .15s; }
+  .tnav { display: flex; justify-content: center; gap: 6px; margin-top: auto; }
+  .tnav button { width: 34px; height: 18px; font-size: 10px; line-height: 1; color: var(--dim); }
+  .tnav button:disabled { opacity: .3; cursor: default; }
+  .tnav.idle { visibility: hidden; }
+  .tnav.none { display: none; }
+  .bottom { display: flex; flex-direction: column; gap: 4px; }
   .minis .mini.eq { flex: 1 1 44px; min-width: 44px; }
   .compgrp { flex: 0 0 auto; display: flex; gap: 3px; align-items: center; }
   .mini.comp { width: 48px; flex: 0 0 48px; }
@@ -103,7 +112,7 @@
   .knobrow input { flex: 1; min-width: 0; }
   .knobrow span { width: 40px; text-align: right; color: var(--text); }
 
-  .faderwrap { display: flex; gap: 4px; height: 220px; justify-content: center; }
+  .faderwrap { display: flex; gap: 4px; flex: 1 1 auto; min-height: 140px; justify-content: center; }
   .fader { position: relative; width: 46px; touch-action: none; cursor: ns-resize; }
   .fader .track { position: absolute; left: 50%; top: 10px; bottom: 10px; width: 6px; margin-left: -3px;
     background: var(--slot, #0e1012); border-radius: 3px; }
@@ -125,10 +134,11 @@
   .meter i { position: absolute; left: 0; right: 0; bottom: 0; height: 0;
     background: linear-gradient(to top, #2fbf5f 0%, #2fbf5f 58%, #e8c33a 61%, #e8c33a 84%, #ff4040 86%); background-size: 100% 200px; z-index: 0;
     background-position: bottom; }
+  .dbrow { display: flex; align-items: baseline; justify-content: center; gap: 8px; }
   .db { text-align: center; font: 600 13px ui-monospace, Menlo, monospace; }
   .db.clip { color: var(--rec); }
   .btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
-  .btns button { height: 32px; font-weight: 700; font-size: 12px; }
+  .btns button { height: 24px; font-weight: 700; font-size: 11px; border-radius: 5px; }
   .btns .m.on { background: var(--mute); color: #fff; border-color: var(--mute); }
   .btns .s.on { background: var(--solo); color: #222; border-color: var(--solo); }
   .btns .r.on { background: var(--arm); color: #fff; border-color: var(--arm); }
@@ -139,7 +149,7 @@
     text-transform: uppercase; letter-spacing: .6px; padding: 2px 0; display: flex; gap: 6px; align-items: center; }
   .sect2 > button::before { content: "▸"; display: inline-block; transition: transform .15s; }
   .sect2.open > button::before { transform: rotate(90deg); }
-  .sect2 .list { display: none; flex-direction: column; gap: 4px; }
+  .sect2 .list { display: none; flex-direction: column; gap: 4px; max-height: 30vh; overflow-y: auto; }
   .sect2.open .list { display: flex; }
   .sendrow { display: flex; flex-direction: column; gap: 0; padding: 5px 6px 2px; background: var(--panel2);
     border-radius: 6px; }
@@ -179,7 +189,7 @@
   #banks button + button { border-left: 1px solid var(--line); }
   #banks button.on { background: var(--accent); color: #fff; }
   #banks span { align-self: center; padding: 0 8px; font-size: 11px; color: var(--dim); }
-  .cfgBtn { width: 26px; height: 26px; border-radius: 6px; font-size: 14px;
+  .cfgBtn { width: 24px; height: 20px; border-radius: 5px; font-size: 13px;
     background: transparent; border-color: transparent; opacity: .6; display: grid; place-items: center; }
   .cfgBtn.custom { color: var(--accent); opacity: 1; }
   #stripMenu { position: fixed; z-index: 15; display: none; min-width: 210px; background: var(--panel2);
@@ -210,7 +220,8 @@
   .scale span { position: absolute; right: 0; transform: translateY(-50%); }
   .meter b { position: absolute; left: 0; right: 0; height: 1px; background: rgba(255,255,255,.14); z-index: 1; }
   .meter b.z { background: rgba(255,255,255,.35); }
-  .pk { text-align: center; font: 10px ui-monospace, Menlo, monospace; color: var(--dim); margin-top: -4px; }
+  .pk { font: 10px ui-monospace, Menlo, monospace; color: var(--dim); cursor: pointer; }
+  .strip.sq-r .sect2.opt-recv, .strip.sq-s .sect2.opt-sends, .strip.sq-p .pk { display: none !important; }
   .pk.clip { color: var(--rec); }
 
   input[type=range] { -webkit-appearance: none; appearance: none; height: 22px; background: transparent; }
@@ -993,15 +1004,104 @@ function render() {
   if (popup) updatePopup();
 }
 
-function alignStrips() {
-  var tops = Object.keys(strips).map(function (i) { return strips[i].top; }), max = 0;
-  tops.forEach(function (t) { t.style.minHeight = ""; });
-  tops.forEach(function (t) { max = Math.max(max, t.offsetHeight); });
-  tops.forEach(function (t) { t.style.minHeight = max + "px"; });
+// ---------------------------------------------------------------- fit-to-page layout
+// Strips fill the mixer height. The fader gets everything left over (at least FADER_MIN); the items above it
+// (level, plugins, pan) show as many whole rows as fit, at least one, and ▲▼ step through the rest.
+// Tops and bottoms are equalized across strips so all faders line up.
+var FADER_MIN = 160, FADER_FLOOR = 120, topScroll = {};   // topScroll is only set once the user scrolls a strip
+// when even one row + the minimum fader don't fit, these go first (in order), then the fader shrinks to FADER_FLOOR
+var SQUEEZE = ["sq-r", "sq-s", "sq-p"];   // topScroll: track key -> first visible row
+function rowsOf(container) {
+  var leaves = [];
+  (function walk(e) {
+    [].forEach.call(e.children, function (c) {
+      if (c.offsetParent === null) return;   // hidden by view options
+      if (c.classList.contains("fxbox") || c.classList.contains("minis")) walk(c); else leaves.push(c);
+    });
+  })(container);
+  leaves.sort(function (a, b) { return a.offsetTop - b.offsetTop; });
+  var rows = [];
+  leaves.forEach(function (c) {
+    var top = c.offsetTop, bot = top + c.offsetHeight, r = rows[rows.length - 1];
+    var plug = c.matches(".mini, .compgrp, .fxrow");
+    if (r && top < r.bottom - 2) { r.bottom = Math.max(r.bottom, bot); r.plugin = r.plugin || plug; }   // same row (side by side)
+    else rows.push({ top: top, bottom: bot, plugin: plug });
+  });
+  return rows;
+}
+function fitRows(rows, idx, avail) {
+  if (!rows.length) return { idx: 0, last: -1, h: 0 };
+  idx = clamp(idx, 0, rows.length - 1);
+  var last = idx;
+  while (last + 1 < rows.length && rows[last + 1].bottom - rows[idx].top <= avail) last++;
+  // scrolled further than needed (e.g. after the window grew): pull back while the last row still fits
+  while (idx > 0 && last === rows.length - 1 && rows[last].bottom - rows[idx - 1].top <= avail) idx--;
+  return { idx: idx, last: last, h: rows[last].bottom - rows[idx].top };
+}
+function alignStrips() { layoutMixer(); }
+function layoutMixer() {
+  var list = Object.keys(strips).map(function (k) { return strips[k]; });
+  if (!list.length) return;
+  list.forEach(function (s) {
+    SQUEEZE.forEach(function (c) { s.root.classList.remove(c); });
+    s.sq = "";
+    s.root.querySelector(".faderwrap").style.minHeight = "";
+    s.top.style.minHeight = ""; s.bottom.style.minHeight = "";
+    s.tview.style.height = ""; s.tinner.style.transform = "";
+    s.tnav.className = "tnav none";
+  });
+  var mixer = $("mixer"), cs = getComputedStyle(mixer), r0 = getComputedStyle(list[0].root);
+  var stripInner = mixer.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)
+    - parseFloat(r0.paddingTop) - parseFloat(r0.paddingBottom) - parseFloat(r0.borderTopWidth) - parseFloat(r0.borderBottomWidth);
+  var gap = parseFloat(r0.rowGap) || 8, maxBottom = 0, toolsH = 0;
+  list.forEach(function (s) {
+    s.rows = rowsOf(s.tinner);
+    maxBottom = Math.max(maxBottom, s.bottom.offsetHeight);
+    toolsH = Math.max(toolsH, s.top.firstChild.offsetHeight);
+  });
+  // strip = tools, gap, viewport, [gap, arrows], gap, fader, gap, bottom
+  var minRow = 0, faderMin = FADER_MIN;
+  // first visible row: where the user scrolled to, else the first plugin row (at least one plugin stays visible)
+  list.forEach(function (s) {
+    var fp = 0;
+    for (var k = 0; k < s.rows.length; k++) if (s.rows[k].plugin) { fp = k; break; }
+    s.startRow = trKey(s.i) in topScroll ? topScroll[trKey(s.i)] : fp;
+  });
+  list.forEach(function (s) { var r = s.rows[clamp(s.startRow, 0, s.rows.length - 1)]; if (r) minRow = Math.max(minRow, r.bottom - r.top); });
+  function need() { return toolsH + gap + minRow + gap + 18 + gap + faderMin + gap + maxBottom; }
+  for (var q = 0; q < SQUEEZE.length && need() > stripInner; q++) {
+    list.forEach(function (s) { s.root.classList.add(SQUEEZE[q]); s.sq += " " + SQUEEZE[q]; });
+    maxBottom = 0;
+    list.forEach(function (s) { maxBottom = Math.max(maxBottom, s.bottom.offsetHeight); });
+  }
+  if (need() > stripInner) faderMin = Math.max(FADER_FLOOR, faderMin - (need() - stripInner));
+  list.forEach(function (s) { s.root.querySelector(".faderwrap").style.minHeight = faderMin + "px"; });
+  var avail = stripInner - toolsH - gap - gap - faderMin - gap - maxBottom;
+  var fits = list.map(function (s) { return fitRows(s.rows, s.startRow, avail); });
+  var anyOverflow = fits.some(function (f, k) { return f.idx > 0 || f.last < list[k].rows.length - 1; });
+  if (anyOverflow) {
+    var navH = 18 + gap;
+    fits = list.map(function (s) { return fitRows(s.rows, s.startRow, avail - navH); });
+  }
+  list.forEach(function (s, k) {
+    var f = fits[k];
+    s.tidx = f.idx;
+    if (s.rows.length) {
+      s.tview.style.height = f.h + "px";
+      s.tinner.style.transform = "translateY(" + (-s.rows[f.idx].top) + "px)";
+    } else s.tview.style.height = "0px";
+    var over = f.idx > 0 || f.last < s.rows.length - 1;
+    s.tnav.className = "tnav" + (!anyOverflow ? " none" : over ? "" : " idle");
+    s.tup.disabled = f.idx === 0;
+    s.tdown.disabled = f.last >= s.rows.length - 1;
+  });
+  var maxTop = 0;
+  list.forEach(function (s) { maxTop = Math.max(maxTop, s.top.offsetHeight); });
+  list.forEach(function (s) { s.top.style.minHeight = maxTop + "px"; s.bottom.style.minHeight = maxBottom + "px"; });
 }
 
 function buildStrip(i) {
-  var t = tracks[i], s = { root: el("div", "strip" + (i == 0 ? " master" : "")) };
+  var t = tracks[i], s = { i: i, root: el("div", "strip" + (i == 0 ? " master" : "")) };
   s.name = el("div", "name", esc(trackName(i)));
   s.name.title = trackName(i) + " — tap to select, long-press or Cmd/Ctrl/Shift-click to add/remove";
   attachSelect(s.root, i);   // name and empty strip background select the track
@@ -1023,7 +1123,12 @@ function buildStrip(i) {
   s.lvl = el("div", "lvl opt-level", '<canvas></canvas><div class="lbl">LEVEL</div>');
   s.lvl.title = "Level history (last " + (LVL_LEN / 10) + " s, dBFS)";
   s.lvlCv = s.lvl.firstChild;
-  s.top.appendChild(s.lvl);
+  // level / plugins / pan live in a viewport that shows whole rows only; arrows step through the rest
+  s.tview = el("div", "tview");
+  s.tinner = el("div", "tinner");
+  s.tview.appendChild(s.tinner);
+  s.top.appendChild(s.tview);
+  s.tinner.appendChild(s.lvl);
   s.fxbox = el("div", "fxbox");
   s.fxitems = [];
   var fxs = fxState[i] ? fxState[i].fx : null;
@@ -1068,7 +1173,7 @@ function buildStrip(i) {
   } else {
     s.fxbox.appendChild(el("div", "nofx", "no FX"));
   }
-  s.top.appendChild(s.fxbox);
+  s.tinner.appendChild(s.fxbox);
 
   // pan: the whole box is the control
   s.panBox = el("div", "panbox opt-pan",
@@ -1078,7 +1183,14 @@ function buildStrip(i) {
   s.panFill = s.panBox.querySelector(".pt b");
   s.panMark = s.panBox.querySelector(".pt span");
   attachPan(s, i);
-  s.top.appendChild(s.panBox);
+  s.tinner.appendChild(s.panBox);
+  s.tnav = el("div", "tnav none");
+  s.tup = el("button", null, "▲"); s.tdown = el("button", null, "▼");
+  s.tup.title = "Show items above"; s.tdown.title = "Show more items";
+  s.tup.onclick = function () { topScroll[trKey(i)] = Math.max(0, s.tidx - 1); layoutMixer(); };
+  s.tdown.onclick = function () { topScroll[trKey(i)] = s.tidx + 1; layoutMixer(); };
+  s.tnav.appendChild(s.tup); s.tnav.appendChild(s.tdown);
+  s.top.appendChild(s.tnav);
 
   // fader + meter
   var fw = el("div", "faderwrap");
@@ -1100,13 +1212,17 @@ function buildStrip(i) {
   s.meterBar = s.meter.firstChild;
   fw.appendChild(s.fader); fw.appendChild(scale); fw.appendChild(s.meter);
   s.root.appendChild(fw);
+  s.bottom = el("div", "bottom");    // dB, peak, buttons, name, sends; equalized so faders end level
+  s.root.appendChild(s.bottom);
+  var dbrow = el("div", "dbrow");
   s.db = el("div", "db");
-  s.root.appendChild(s.db);
+  dbrow.appendChild(s.db);
+  s.bottom.appendChild(dbrow);
   s.pk = el("div", "pk");
-  s.pk.title = "Peak hold (tap to reset)";
+  s.pk.title = "Peak hold, dBFS (tap to reset)";
   s.pk.onclick = function () { s.peakHold = -150; };
   s.peakHold = -150;
-  s.root.appendChild(s.pk);
+  dbrow.appendChild(s.pk);
   attachFader(s, function (v) {
     setPend("vol" + i, v);
     wwr_req("SET/TRACK/" + i + "/VOL/" + v.toFixed(6));
@@ -1122,13 +1238,13 @@ function buildStrip(i) {
     s.mon = el("button", "mon opt-mon", "◉"); s.mon.title = "Input monitoring"; s.mon.onclick = function () { wwr_req("SET/TRACK/" + i + "/RECMON/-1"); };
     b.appendChild(s.r); b.appendChild(s.mon);
   }
-  s.root.appendChild(b);
-  s.root.appendChild(s.name);       // track name under the M/S row, full strip width
+  s.bottom.appendChild(b);
+  s.bottom.appendChild(s.name);     // track name under the M/S row, full strip width
 
   // sends / receives (collapsible)
   s.sends = [];
-  if (t.sendcnt > 0) s.root.appendChild(sendSection(i, s, "s", "Sends", t.sendcnt));
-  if (t.recvcnt > 0) s.root.appendChild(sendSection(i, s, "r", "Receives", t.recvcnt));
+  if (t.sendcnt > 0) s.bottom.appendChild(sendSection(i, s, "s", "Sends", t.sendcnt));
+  if (t.recvcnt > 0) s.bottom.appendChild(sendSection(i, s, "r", "Receives", t.recvcnt));
   return s;
 }
 
@@ -1213,7 +1329,7 @@ function selectTrack(i, additive) {
   render();
 }
 // controls keep their own behavior; anything else on the strip selects
-var SELECT_IGNORE = "button, input, select, .fader, .knob, .mini, .meter, .panbox, .sendrow, .sect2 > button";
+var SELECT_IGNORE = "button, input, select, .fader, .knob, .mini, .meter, .panbox, .sendrow, .sect2 > button, .tnav";
 function attachSelect(elm, i) {
   var timer = null, longDone = false;
   elm.addEventListener("pointerdown", function (e) {
@@ -1313,7 +1429,7 @@ function updateStrip(i) {
   var s = strips[i], t = tracks[i];
   if (!s || !t) return;
   var vis = isVisible(i);
-  setCls(s.root, "strip" + (i == 0 ? " master" : "") + (vis ? "" : " hidden") + (isSelected(i) ? " sel" : "") + stripCls(i));
+  setCls(s.root, "strip" + (i == 0 ? " master" : "") + (vis ? "" : " hidden") + (isSelected(i) ? " sel" : "") + stripCls(i) + (s.sq || ""));
   setCls(s.cfg, "cfgBtn" + (bankObj().tr[trKey(i)] ? " custom" : ""));
   if (s.hide) { setHtml(s.hide, vis ? EYE : EYE_OFF); setTitle(s.hide, vis ? "Hide track in REAPER" : "Unhide track"); }
   var tc = trackColor(t.color);
@@ -1329,7 +1445,7 @@ function updateStrip(i) {
   var pk = t.peak / 10; // dBFS
   s.meterBar.style.height = (meterPos(pk) * 100) + "%";
   if (pk > s.peakHold) s.peakHold = pk;
-  setTxt(s.pk, s.peakHold <= -149 ? "peak -inf" : "peak " + (s.peakHold > 0 ? "+" : "") + s.peakHold.toFixed(1));
+  setTxt(s.pk, s.peakHold <= -149 ? "-inf" : (s.peakHold > 0 ? "+" : "") + s.peakHold.toFixed(1));
   setCls(s.pk, "pk opt-scale" + (s.peakHold > 0 ? " clip" : ""));
 
   var pan = resolve("pan" + i, t.pan, 0.006);
