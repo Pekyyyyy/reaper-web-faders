@@ -103,6 +103,16 @@
   .fader .track { position: absolute; left: 50%; top: 10px; bottom: 10px; width: 6px; margin-left: -3px;
     background: #0e1012; border-radius: 3px; }
   .fader .zero { position: absolute; left: 4px; right: 4px; height: 1px; background: #555d66; }
+  .strip:not(.no-fscale) .fader .zero { display: none; }   /* the scale's 0 dB mark replaces it */
+  .fader .ft { position: absolute; left: 0; right: 0; height: 0; pointer-events: none; }
+  .fader .ft span { position: absolute; left: 0; width: 15px; text-align: right; transform: translateY(-50%);
+    font: 8px/1 ui-monospace, Menlo, monospace; color: #6b737d; }
+  .fader .ft i { position: absolute; top: 0; height: 1px; background: #3a414a; width: 4px; }
+  .fader .ft i.l { left: calc(50% - 9px); }
+  .fader .ft i.r { left: calc(50% + 5px); }
+  .fader .ft.z span { color: #aab2bb; }
+  .fader .ft.z i { background: #6b737d; width: 6px; }
+  .fader .ft.z i.l { left: calc(50% - 11px); }
   .fader .cap { position: absolute; left: 3px; right: 3px; height: 22px; margin-top: -11px; border-radius: 4px;
     background: linear-gradient(#6b737d, #3b4148); border: 1px solid #222; box-shadow: 0 2px 4px rgba(0,0,0,.5); }
   .fader .cap::after { content: ""; position: absolute; left: 4px; right: 4px; top: 10px; height: 2px; background: #ddd; }
@@ -138,7 +148,8 @@
   .sendrow .v { width: 36px; text-align: right; color: var(--text); font: 11px ui-monospace, Menlo, monospace; }
 
   .strip.no-pan .opt-pan, .strip.no-arm .opt-arm, .strip.no-mon .opt-mon, .strip.no-sends .opt-sends,
-  .strip.no-recv .opt-recv, .strip.no-fx .opt-fx, .strip.no-scale .opt-scale { display: none !important; }
+  .strip.no-recv .opt-recv, .strip.no-fx .opt-fx, .strip.no-scale .opt-scale,
+  .strip.no-fscale .opt-fscale { display: none !important; }
   .strip.no-eq .mini.eq, .strip.no-comp .compgrp { display: none !important; }
   .strip.eqrow .minis .mini.eq { flex-basis: 100%; }
   .strip.eqrow .minis .mini.eq canvas { height: 56px; }
@@ -510,7 +521,7 @@ $("hiddenBtn").onclick = function () {
 // all devices; localStorage is only a cache for the first paint. The active bank is per device.
 var VIEW_OPTS = [["strip", "Show strip"], ["eq", "EQ"], ["comp", "Compressor"], ["eqrow", "EQ on its own row"],
   ["fx", "Other FX + chain button"], ["pan", "Pan"], ["arm", "Record arm"],
-  ["mon", "Input monitoring"], ["sends", "Sends"], ["recv", "Receives"], ["scale", "Meter scale"]];
+  ["mon", "Input monitoring"], ["sends", "Sends"], ["recv", "Receives"], ["fscale", "Fader scale"], ["scale", "Meter scale"]];
 var VIEW_DEFAULTS = { eqrow: false };   // anything not listed defaults to shown
 // starting setup for each bank when REAPER has none saved: bank 1 is a compact mixing view, 2 and 3 show everything
 var DEFAULT_BANKS = [
@@ -1030,7 +1041,12 @@ function buildStrip(i) {
 
   // fader + meter
   var fw = el("div", "faderwrap");
-  s.fader = el("div", "fader", '<div class="track"></div><div class="zero"></div><div class="cap"></div>');
+  var fticks = FADER_TICKS.map(function (d) {
+    return '<div class="ft opt-fscale' + (d === 0 ? " z" : "") + '" data-db="' + d + '"><span>' +
+      (d === -Infinity ? "-∞" : d > 0 ? "+" + d : d) + '</span><i class="l"></i><i class="r"></i></div>';
+  }).join("");
+  s.fader = el("div", "fader", '<div class="track"></div>' + fticks + '<div class="zero"></div><div class="cap"></div>');
+  s.fticks = [].slice.call(s.fader.querySelectorAll(".ft"));
   s.cap = s.fader.querySelector(".cap");
   s.zero = s.fader.querySelector(".zero");
   var scale = el("div", "scale opt-scale"), ticks = "";
@@ -1107,6 +1123,9 @@ function sendSection(i, s, kind, title, count) {
   return sec;
 }
 
+// fader scale marks (dB); positioned with the same curve the fader uses
+var FADER_TICKS = [12, 6, 0, -6, -12, -24, -40, -60, -Infinity];
+
 // meter scale: -60..+6 dBFS, with more room at the top
 var METER_TICKS = [6, 0, -6, -12, -18, -24, -36, -48, -60];
 function meterPos(db) { return db <= -60 ? 0 : Math.min(1, Math.pow((db + 60) / 66, 1.6)); }
@@ -1140,6 +1159,13 @@ function drawFader(s, v) {
   var h = s.fader.clientHeight - 20;
   s.cap.style.top = (10 + (1 - vol2pos(v)) * h) + "px";
   s.zero.style.top = (10 + (1 - vol2pos(1)) * h) + "px";
+  if (s.fticksH !== h) {   // only when the fader height changes
+    s.fticksH = h;
+    s.fticks.forEach(function (t) {
+      var d = +t.getAttribute("data-db");
+      t.style.top = (10 + (1 - vol2pos(d === -Infinity ? 0 : Math.pow(10, d / 20))) * h) + "px";
+    });
+  }
   s.db.textContent = dbstr(v) + " dB";
 }
 
