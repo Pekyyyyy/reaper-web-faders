@@ -222,6 +222,14 @@
   .meter b.z { background: rgba(255,255,255,.35); }
   .pk { font: 10px ui-monospace, Menlo, monospace; color: var(--dim); cursor: pointer; }
   .strip.sq-r .sect2.opt-recv, .strip.sq-s .sect2.opt-sends, .strip.sq-p .pk { display: none !important; }
+  /* no room for a fader: ▼ dB ▲ stepper instead */
+  .vstep { display: none; align-items: stretch; gap: 3px; height: 30px; flex-shrink: 0; min-width: 0; }
+  .strip > .top, .strip > .bottom { flex-shrink: 0; }   /* only the fader gives up height */
+  .vstep button { flex: 0 0 26px; min-width: 0; font-size: 11px; padding: 0; }
+  .vstep .vdb { flex: 1; min-width: 0; overflow: hidden; display: grid; place-items: center; background: #0e1012; border-radius: 5px;
+    font: 600 11px ui-monospace, Menlo, monospace; white-space: nowrap; }
+  .strip.sq-f .vstep { display: flex; }
+  .strip.sq-f .faderwrap, .strip.sq-f .dbrow { display: none !important; }
   .pk.clip { color: var(--rec); }
 
   input[type=range] { -webkit-appearance: none; appearance: none; height: 22px; background: transparent; }
@@ -1045,6 +1053,7 @@ function layoutMixer() {
   list.forEach(function (s) {
     SQUEEZE.forEach(function (c) { s.root.classList.remove(c); });
     s.sq = "";
+    s.root.classList.remove("sq-f");
     s.root.querySelector(".faderwrap").style.minHeight = "";
     s.top.style.minHeight = ""; s.bottom.style.minHeight = "";
     s.tview.style.height = ""; s.tinner.style.transform = "";
@@ -1075,6 +1084,12 @@ function layoutMixer() {
     list.forEach(function (s) { maxBottom = Math.max(maxBottom, s.bottom.offsetHeight); });
   }
   if (need() > stripInner) faderMin = Math.max(FADER_FLOOR, faderMin - (need() - stripInner));
+  if (need() > stripInner) {   // not even the smallest fader fits: ▼ dB ▲ stepper instead
+    list.forEach(function (s) { s.root.classList.add("sq-f"); s.sq += " sq-f"; });
+    maxBottom = 0;
+    list.forEach(function (s) { maxBottom = Math.max(maxBottom, s.bottom.offsetHeight); });
+    faderMin = list[0].vstep.offsetHeight;
+  }
   list.forEach(function (s) { s.root.querySelector(".faderwrap").style.minHeight = faderMin + "px"; });
   var avail = stripInner - toolsH - gap - gap - faderMin - gap - maxBottom;
   var fits = list.map(function (s) { return fitRows(s.rows, s.startRow, avail); });
@@ -1212,6 +1227,12 @@ function buildStrip(i) {
   s.meterBar = s.meter.firstChild;
   fw.appendChild(s.fader); fw.appendChild(scale); fw.appendChild(s.meter);
   s.root.appendChild(fw);
+  s.vstep = el("div", "vstep", '<button title="-1 dB (hold to repeat)">▼</button><div class="vdb"></div><button title="+1 dB (hold to repeat)">▲</button>');
+  s.vdb = s.vstep.querySelector(".vdb");
+  s.vdb.title = "Track volume, dB";
+  attachStepper(s, i, s.vstep.firstChild, -1);
+  attachStepper(s, i, s.vstep.lastChild, 1);
+  s.root.appendChild(s.vstep);
   s.bottom = el("div", "bottom");    // dB, peak, buttons, name, sends; equalized so faders end level
   s.root.appendChild(s.bottom);
   var dbrow = el("div", "dbrow");
@@ -1329,7 +1350,7 @@ function selectTrack(i, additive) {
   render();
 }
 // controls keep their own behavior; anything else on the strip selects
-var SELECT_IGNORE = "button, input, select, .fader, .knob, .mini, .meter, .panbox, .sendrow, .sect2 > button, .tnav";
+var SELECT_IGNORE = "button, input, select, .fader, .knob, .mini, .meter, .panbox, .sendrow, .sect2 > button, .tnav, .vstep";
 function attachSelect(elm, i) {
   var timer = null, longDone = false;
   elm.addEventListener("pointerdown", function (e) {
@@ -1423,6 +1444,47 @@ function drawFader(s, v) {
     });
   }
   s.db.textContent = dbstr(v) + " dB";
+  setTxt(s.vdb, dbstr(v));   // number only so it fits narrow strips; the title says dB
+}
+
+// ---------------------------------------------------------------- dB stepper (used when no fader fits)
+// Each step moves the target by 1 dB; the volume glides there instead of jumping. Hold to repeat.
+var VOL_MIN_DB = -60, VOL_MAX_DB = 12;
+function volDb(v) { return v < 0.0000001 ? -Infinity : 20 * Math.log(v) / Math.LN10; }
+function dbVol(d) { return d === -Infinity ? 0 : Math.pow(10, d / 20); }
+function stepVolume(s, i, dir) {
+  var cur = isPend("vol" + i) ? pend["vol" + i].v : tracks[i].vol;
+  var from = s.glide ? s.glide.target : volDb(cur);
+  var to;
+  if (from === -Infinity) to = dir > 0 ? VOL_MIN_DB : -Infinity;
+  else {
+    // next whole dB in that direction (-3.4 → -3 up, -4 down; -3 → -2 up)
+    to = dir > 0 ? Math.floor(from + 1e-6) + 1 : Math.ceil(from - 1e-6) - 1;
+    if (to < VOL_MIN_DB) to = -Infinity;
+    to = Math.min(VOL_MAX_DB, to);
+  }
+  var start = from === -Infinity ? VOL_MIN_DB - 10 : volDb(cur);
+  s.glide = { from: start, target: to, t0: Date.now(), dur: 180 };
+  if (!s.glideTimer) s.glideTimer = setInterval(function () {
+    var g = s.glide, k = Math.min(1, (Date.now() - g.t0) / g.dur);
+    var endDb = g.target === -Infinity ? VOL_MIN_DB - 10 : g.target;
+    var d = g.from + (endDb - g.from) * (1 - Math.pow(1 - k, 2));   // ease out
+    var v = k >= 1 && g.target === -Infinity ? 0 : dbVol(d);
+    setPend("vol" + i, v);
+    wwr_req("SET/TRACK/" + i + "/VOL/" + v.toFixed(6));
+    drawFader(s, v);
+    if (k >= 1) { clearInterval(s.glideTimer); s.glideTimer = null; s.glide = null; }
+  }, 30);
+}
+function attachStepper(s, i, btn, dir) {
+  var rep = null;
+  function stop() { clearTimeout(rep); rep = null; }
+  btn.addEventListener("pointerdown", function (e) {
+    e.preventDefault();
+    stepVolume(s, i, dir);
+    (function again(delay) { rep = setTimeout(function () { stepVolume(s, i, dir); again(140); }, delay); })(420);
+  });
+  ["pointerup", "pointercancel", "pointerleave"].forEach(function (ev) { btn.addEventListener(ev, stop); });
 }
 
 function updateStrip(i) {
