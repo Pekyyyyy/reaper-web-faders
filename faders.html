@@ -133,7 +133,7 @@
   .btns .s.on { background: var(--solo); color: #222; border-color: var(--solo); }
   .btns .r.on { background: var(--arm); color: #fff; border-color: var(--arm); }
   .btns .mon.on { background: #6a5cff; color: #fff; border-color: #6a5cff; }
-  .btns { grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); }
+  .btns { grid-template-columns: repeat(2, minmax(0, 1fr)); }   /* M S on top, R and monitoring below */
   .sect2 { border-top: 1px solid var(--line); padding-top: 6px; display: flex; flex-direction: column; gap: 4px; }
   .sect2 > button { background: transparent; border: 0; text-align: left; font-size: 11px; color: var(--dim);
     text-transform: uppercase; letter-spacing: .6px; padding: 2px 0; display: flex; gap: 6px; align-items: center; }
@@ -223,6 +223,9 @@
   #cardTitle small { color: var(--dim); font-weight: 400; margin-left: 8px; font-size: 13px; }
   #cardHead button { padding: 7px 12px; font-size: 13px; }
   #cardOn.on { color: var(--fx); border-color: var(--fx); }
+  #cardHead button.nav { width: 36px; padding: 4px 0; font-size: 20px; line-height: 1; }
+  #cardHead button:disabled { opacity: .4; cursor: default; filter: none; }
+  #cardCopy.done { color: var(--ok); border-color: var(--ok); }
   #closeX { position: absolute; top: 8px; right: 10px; width: 40px; height: 40px; border-radius: 50%; font-size: 24px;
     line-height: 1; background: transparent; border-color: transparent; color: var(--dim); }
   #closeX:hover { color: var(--text); background: var(--panel2); }
@@ -296,7 +299,11 @@
 <div id="modal">
   <div id="card">
     <div id="cardHead">
+      <button id="cardPrev" class="nav" title="Previous track (←)">‹</button>
+      <button id="cardNext" class="nav" title="Next track (→)">›</button>
       <div id="cardTitle"></div>
+      <button id="cardCopy" title="Copy this plug-in's settings">Copy</button>
+      <button id="cardPaste" title="Paste settings copied from the same plug-in">Paste</button>
       <button id="cardOn">ON</button>
       <button id="cardFloat" title="Open the plug-in window in REAPER">Open in REAPER</button>
     </div>
@@ -310,7 +317,7 @@
 wwr_req_recur("TRANSPORT;NTRACK;TRACK", 60);
 wwr_req_recur("GET/EXTSTATE/WEBFX/alive;GET/EXTSTATE/WEBFX/state", 150);
 wwr_req_recur("GET/EXTSTATE/WEBFX/lut", 3000);
-wwr_req_recur("GET/EXTSTATE/WEBFX/srate", 1000);
+wwr_req_recur("GET/EXTSTATE/WEBFX/srate;GET/EXTSTATE/WEBFX/clip", 1000);
 wwr_start();
 
 var $ = function (id) { return document.getElementById(id); };
@@ -489,6 +496,9 @@ function wwr_onreply(results) {
           if (tok[3] && tok[3] !== bridgeAlive) { bridgeAlive = tok[3]; bridgeSeen = Date.now(); }
         } else if (tok[2] === "state" && tok[3]) {
           try { fxState = JSON.parse(simple_unescape(tok[3])); applyPendingFx(); } catch (e) {}
+        } else if (tok[2] === "clip") {
+          var cp = (tok[3] || "").split("|");   // id|fx name|track name, each percent-encoded
+          fxClip = tok[3] ? { id: dec(cp[0]), name: dec(cp[1] || ""), track: dec(cp[2] || "") } : null;
         } else if (tok[2] === "srate" && +tok[3] > 0) {
           FS = +tok[3];
           FMAX = Math.min(24000, FS / 2);
@@ -970,6 +980,7 @@ function render() {
     alignStrips();
   }
   shown.forEach(updateStrip);
+  shownOrder = shown;
   if (popup) updatePopup();
 }
 
@@ -1382,7 +1393,9 @@ function makeKnob(label, t, f, p, opts) {
 }
 
 // ---------------------------------------------------------------- FX popup
-var popup = null;   // {t, f, kind, sel, knobs, cv, ...}
+var popup = null;
+var shownOrder = [];   // track indices in on-screen strip order
+var fxClip = null;   // settings copied in the bridge: {id, name, track}   // {t, f, kind, sel, knobs, cv, ...}
 function openPopup(t, f) {
   var fx = getFx(t, f);
   if (!fx) return;
@@ -1395,13 +1408,59 @@ $("closeX").onclick = closePopup;
 $("modal").addEventListener("pointerdown", function (e) { if (e.target === $("modal")) closePopup(); });
 document.addEventListener("keydown", function (e) { if (e.key === "Escape" && popup) closePopup(); });
 $("cardOn").onclick = function () { if (popup) toggleFx(popup.t, popup.f); };
+// neighbouring track with FX in on-screen order; opens the same kind of plug-in there
+function popupNeighbor(dir) {
+  if (!popup) return null;
+  var cur = getFx(popup.t, popup.f), order = shownOrder;
+  for (var k = order.indexOf(popup.t) + dir; k >= 0 && k < order.length; k += dir) {
+    var t = order[k], fxs = fxState[t] ? fxState[t].fx : [];
+    if (!fxs.length) continue;
+    var f = -1;
+    if (cur) for (var j = 0; j < fxs.length && f < 0; j++) if (cur.k ? fxs[j].k === cur.k : fxs[j].id === cur.id) f = j;
+    if (f < 0) f = popup.f < fxs.length ? popup.f : 0;
+    return { t: t, f: f };
+  }
+  return null;
+}
+function popupNav(dir) {
+  var n = popupNeighbor(dir);
+  if (!n) return;
+  selectTrack(n.t, false);
+  openPopup(n.t, n.f);
+}
+$("cardPrev").onclick = function () { popupNav(-1); };
+$("cardNext").onclick = function () { popupNav(1); };
+document.addEventListener("keydown", function (e) {
+  if (!popup || e.target.closest("input, select")) return;
+  if (e.key === "ArrowLeft") popupNav(-1);
+  else if (e.key === "ArrowRight") popupNav(1);
+});
 $("cardFloat").onclick = function () { if (popup) bridgeCmd("o|" + popup.t + "|" + popup.f); };
+$("cardCopy").onclick = function () {
+  if (!popup) return;
+  var fx = getFx(popup.t, popup.f);
+  bridgeCmd("C|" + popup.t + "|" + popup.f);
+  fxClip = { id: fx.id ? dec(fx.id) : "", name: dec(fx.n), track: trackName(popup.t) };   // until the bridge confirms
+  var b = $("cardCopy");
+  b.textContent = "Copied"; b.classList.add("done");
+  setTimeout(function () { b.textContent = "Copy"; b.classList.remove("done"); }, 1200);
+  updatePopup();
+};
+$("cardPaste").onclick = function () {
+  if (popup && !$("cardPaste").disabled) bridgeCmd("P|" + popup.t + "|" + popup.f);
+};
 
 function updatePopup() {
   var t = popup.t, f = popup.f, fx = getFx(t, f);
   if (!fx) { closePopup(); return; }
   var sig = t + "/" + f + "/" + fx.n + "/" + fx.p.length + "/" + popup.sel + "/" + (fx.bt ? fx.bt.join(",") : "");
   if (sig !== popup.sig) { popup.sig = sig; buildPopup(); }
+  $("cardPrev").disabled = !popupNeighbor(-1);
+  $("cardNext").disabled = !popupNeighbor(1);
+  var canPaste = !!(fxClip && fx.id && fxClip.id === dec(fx.id));
+  $("cardPaste").disabled = !canPaste;
+  setTitle($("cardPaste"), canPaste ? "Paste settings from " + fxShortName(fxClip.name) + " on " + fxClip.track
+    : fxClip ? "Copied settings are from a different plug-in (" + fxShortName(fxClip.name) + ")" : "Nothing copied yet");
   setTxt($("cardOn"), fx.e ? "ON" : "BYPASSED");
   setCls($("cardOn"), fx.e ? "on" : "");
   if (popup.kind === "eq") {

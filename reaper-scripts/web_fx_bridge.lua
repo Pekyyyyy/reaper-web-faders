@@ -11,6 +11,8 @@
 --   op=o  open fx floating UI    -> o|track|fx
 --   op=e  ReaEQ band enabled     -> e|track|fx|band|0/1
 --   op=y  ReaEQ band type        -> y|track|fx|band|type
+--   op=C  copy fx settings       -> C|track|fx      (kept in the bridge; ExtState WEBFX/clip describes it)
+--   op=P  paste fx settings      -> P|track|fx      (only onto the same plug-in)
 --   ExtState WEBFX/lut = JSON {guid:{param:[129 numeric samples of 0..1]}} for ReaEQ/ReaComp,
 --   so the page can convert between normalized values and Hz/dB/ms.
 
@@ -39,6 +41,14 @@ local function fx_kind(name)
   if name:find("ReaEQ") then return "eq" end
   if name:find("ReaComp") then return "comp" end
   return ""
+end
+
+-- plug-in identity used to decide whether settings can be pasted (survives renaming the FX)
+local function fx_id(tr, f)
+  local ok, id = reaper.TrackFX_GetNamedConfigParm(tr, f, "fx_ident")
+  if ok and id ~= "" then return id end
+  local _, name = reaper.TrackFX_GetFXName(tr, f, "")
+  return name
 end
 
 local function num(s)
@@ -130,8 +140,8 @@ local function build_state()
           if not lut_cache[guid] then lut_cache[guid] = build_lut(tr, f, np) end
           luts[#luts + 1] = '"' .. guid .. '":' .. lut_cache[guid]
         end
-        fxs[#fxs + 1] = string.format('{"n":"%s","e":%d,"np":%d,"k":"%s","g":"%s"%s,"p":[%s]}',
-          enc(name), reaper.TrackFX_GetEnabled(tr, f) and 1 or 0, np, kind, guid, extra, table.concat(params, ","))
+        fxs[#fxs + 1] = string.format('{"n":"%s","id":"%s","e":%d,"np":%d,"k":"%s","g":"%s"%s,"p":[%s]}',
+          enc(name), enc(fx_id(tr, f)), reaper.TrackFX_GetEnabled(tr, f) and 1 or 0, np, kind, guid, extra, table.concat(params, ","))
       end
       local ce = reaper.GetMediaTrackInfo_Value(tr, "I_FXEN")
       local sd, rc = routing(tr)
@@ -145,6 +155,36 @@ local function build_state()
     reaper.SetExtState(SEC, "lut", lut, false)
   end
   return "{" .. table.concat(out, ",") .. "}"
+end
+
+local clip = nil   -- {id, params = {...}, bands = {{type, enabled}, ...}}
+
+local function copy_fx(tr, t, f)
+  local c = { id = fx_id(tr, f), params = {}, bands = {} }
+  for p = 0, reaper.TrackFX_GetNumParams(tr, f) - 1 do
+    c.params[p] = reaper.TrackFX_GetParamNormalized(tr, f, p)
+  end
+  for b = 0, 15 do   -- ReaEQ band layout isn't in the parameter list
+    local ok, ty = reaper.TrackFX_GetNamedConfigParm(tr, f, "BANDTYPE" .. b)
+    if not ok then break end
+    local _, en = reaper.TrackFX_GetNamedConfigParm(tr, f, "BANDENABLED" .. b)
+    c.bands[b] = { ty, en }
+  end
+  clip = c
+  local _, tname = reaper.GetTrackName(tr)
+  local _, fname = reaper.TrackFX_GetFXName(tr, f, "")
+  reaper.SetExtState(SEC, "clip", enc(c.id) .. "|" .. enc(fname) .. "|" .. enc(tname), false)
+end
+
+local function paste_fx(tr, f)
+  if not clip or clip.id ~= fx_id(tr, f) then return end
+  reaper.Undo_BeginBlock()
+  for b, v in pairs(clip.bands) do
+    reaper.TrackFX_SetNamedConfigParm(tr, f, "BANDTYPE" .. b, v[1])
+    reaper.TrackFX_SetNamedConfigParm(tr, f, "BANDENABLED" .. b, v[2])
+  end
+  for p, v in pairs(clip.params) do reaper.TrackFX_SetParamNormalized(tr, f, p, v) end
+  reaper.Undo_EndBlock("Web: paste FX settings", -1)
 end
 
 local function apply(op, a)
@@ -164,6 +204,10 @@ local function apply(op, a)
     reaper.TrackFX_SetNamedConfigParm(tr, tonumber(a[2]), "BANDENABLED" .. a[3], a[4])
   elseif op == "y" then
     reaper.TrackFX_SetNamedConfigParm(tr, tonumber(a[2]), "BANDTYPE" .. a[3], a[4])
+  elseif op == "C" then
+    copy_fx(tr, tonumber(a[1]), tonumber(a[2]))
+  elseif op == "P" then
+    paste_fx(tr, tonumber(a[2]))
   elseif op == "o" then
     reaper.TrackFX_Show(tr, tonumber(a[2]), 3)
   end
@@ -225,6 +269,7 @@ reaper.atexit(function()
   reaper.DeleteExtState(SEC, "state", false)
   reaper.DeleteExtState(SEC, "lut", false)
   reaper.DeleteExtState(SEC, "srate", false)
+  reaper.DeleteExtState(SEC, "clip", false)
 end)
 
 loop()
