@@ -3,13 +3,17 @@
 A touch-friendly mixer for REAPER's built-in web remote. It runs in any browser on your network (phone, tablet, laptop).
 
 - **Transport:** record start/stop (plus play/pause and stop), with a large clock showing the current position, the transport state and bars/beats.
-- **Channel strips:** fader with a dBFS meter (scale lines and numbers, peak hold), pan, mute, solo, record arm and input monitoring. Faders line up across all strips.
+- **Fits the screen:** the mixer always fills the window with no page scrolling. Faders take the free height and line up across strips. Items above the fader (level, plug-ins, pan) show as many whole rows as fit, always at least one plug-in, and small ▲▼ arrows above the fader step through the rest.
+- **Channel strips:** fader with a dB scale, a dBFS meter with scale lines and peak hold, a PAN box (drag anywhere, double-tap to center), mute (red) / solo (yellow), record arm and input monitoring. The track's REAPER color shows on the strip outline, the fader slot and above the name.
+- **Track selection:** tap a track name or empty part of a strip to select it; Cmd/Ctrl/Shift-click or long-press adds/removes. Selection is mirrored to and from REAPER.
+- **Level history:** a 15-second scrolling level graph above the plug-ins.
 - **Graphical EQ (ReaEQ):** a mini curve sits on each strip. Tap it to open a popup with draggable band points, band type and on/off, and knobs for frequency, gain, bandwidth, output gain and wet. The curve is computed at the project's actual sample rate.
 - **Graphical compressor (ReaComp):** a mini transfer curve with a threshold knob sits on each strip. The popup has a square transfer graph with draggable threshold and ratio handles, a live gain-reduction meter, and a scrolling gain-reduction history behind the curve. Knobs cover threshold, ratio, knee, attack, release, pre-comp, wet, dry and RMS size, with auto make-up and auto release buttons.
+- **Plug-in popup:** ‹ › (or arrow keys) jump to the same plug-in on the neighboring track and select it; Copy/Paste copies all settings between instances of the same plug-in (works across devices, one undo step).
 - **Other plug-ins:** listed by name with an on/off toggle. Tapping one opens a slider list of its parameters.
 - **Sends and receives:** collapsible sections, two rows per item, showing the destination or source and the channel routing (e.g. `ch 1-2 → 3-4`), with level and mute controls.
 - **Hide/unhide tracks** in REAPER's track view and mixer.
-- **View banks 1/2/3:** each bank stores which items every strip shows (EQ, compressor, EQ on its own row, other FX, pan, arm, monitoring, sends, receives, meter scale, the strip itself) and the strip width. Banks are saved inside REAPER, so they survive page reloads and REAPER restarts and are shared by all devices. Each device remembers which bank it last used.
+- **View banks 1/2/3:** each bank stores which items every strip shows (level history, EQ, compressor, EQ on its own row, other FX, FX chain button, pan, arm, monitoring, sends, receives, fader scale, meter scale, the strip itself) and the strip width. Banks are saved inside REAPER, so they survive page reloads and REAPER restarts and are shared by all devices. Each device remembers which bank it last used. Bank 1 starts as a compact mixing view.
 
 ## Install
 
