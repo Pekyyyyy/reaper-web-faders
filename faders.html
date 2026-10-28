@@ -58,6 +58,10 @@
   .strip.hidden .hideBtn { border-color: var(--accent); color: var(--accent); opacity: 1; }
   .name { font-weight: 700; text-align: center; padding: 6px 4px; border-radius: 6px; background: var(--panel2);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-top: 3px solid transparent; }
+  .strip { cursor: pointer; }
+  .strip .name { transition: background .1s; }
+  .strip.sel { background: #26303c; }
+  .strip.sel .name { background: rgba(79,163,255,.22); color: #d6e8ff; }
   .tools { display: flex; justify-content: flex-end; gap: 2px; margin: -2px -2px 0 0; }
   .hideBtn { width: 26px; height: 26px; border-radius: 6px;
     background: transparent; border-color: transparent; opacity: .6; display: grid; place-items: center; }
@@ -102,7 +106,7 @@
   .faderwrap { display: flex; gap: 4px; height: 220px; justify-content: center; }
   .fader { position: relative; width: 46px; touch-action: none; cursor: ns-resize; }
   .fader .track { position: absolute; left: 50%; top: 10px; bottom: 10px; width: 6px; margin-left: -3px;
-    background: #0e1012; border-radius: 3px; }
+    background: var(--slot, #0e1012); border-radius: 3px; }
   .fader .zero { position: absolute; left: 4px; right: 4px; height: 1px; background: #555d66; }
   .strip:not(.no-fscale) .fader .zero { display: none; }   /* the scale's 0 dB mark replaces it */
   .fader .ft { position: absolute; left: 0; right: 0; height: 0; pointer-events: none; }
@@ -150,7 +154,12 @@
 
   .strip.no-pan .opt-pan, .strip.no-arm .opt-arm, .strip.no-mon .opt-mon, .strip.no-sends .opt-sends,
   .strip.no-recv .opt-recv, .strip.no-fx .opt-fx, .strip.no-scale .opt-scale,
-  .strip.no-fscale .opt-fscale { display: none !important; }
+  .strip.no-fscale .opt-fscale, .strip.no-level .opt-level { display: none !important; }
+  .lvl { position: relative; background: var(--graph); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .lvl canvas { height: 50px; }   /* same box as the EQ mini */
+  .strip.eqrow .lvl canvas { height: 56px; }
+  .lvl .lbl { position: absolute; left: 5px; top: 3px; font-size: 10px; font-weight: 700; color: var(--dim);
+    letter-spacing: .5px; pointer-events: none; }
   .strip.no-eq .mini.eq, .strip.no-comp .compgrp { display: none !important; }
   .strip.eqrow .minis .mini.eq { flex-basis: 100%; }
   .strip.eqrow .minis .mini.eq canvas { height: 56px; }
@@ -528,7 +537,7 @@ $("hiddenBtn").onclick = function () {
 // 3 banks; each holds defaults for all strips plus per-strip overrides (keyed by track name) and strip width.
 // Stored in REAPER (persistent ExtState WEBFADERS/store) so it survives reloads, restarts and is shared by
 // all devices; localStorage is only a cache for the first paint. The active bank is per device.
-var VIEW_OPTS = [["strip", "Show strip"], ["eq", "EQ"], ["comp", "Compressor"], ["eqrow", "EQ on its own row"],
+var VIEW_OPTS = [["strip", "Show strip"], ["level", "Level history"], ["eq", "EQ"], ["comp", "Compressor"], ["eqrow", "EQ on its own row"],
   ["fx", "Other FX + chain button"], ["pan", "Pan"], ["arm", "Record arm"],
   ["mon", "Input monitoring"], ["sends", "Sends"], ["recv", "Receives"], ["fscale", "Fader scale"], ["scale", "Meter scale"]];
 var VIEW_DEFAULTS = { eqrow: false };   // anything not listed defaults to shown
@@ -974,7 +983,8 @@ function alignStrips() {
 function buildStrip(i) {
   var t = tracks[i], s = { root: el("div", "strip" + (i == 0 ? " master" : "")) };
   s.name = el("div", "name", esc(trackName(i)));
-  s.name.title = trackName(i);
+  s.name.title = trackName(i) + " — tap to select, long-press or Cmd/Ctrl/Shift-click to add/remove";
+  attachSelect(s.root, i);   // name and empty strip background select the track
   s.top = el("div", "top");          // tools + FX + pan; equalized across strips so faders line up
   var tools = el("div", "tools");
   s.top.appendChild(tools);
@@ -990,6 +1000,10 @@ function buildStrip(i) {
   }
 
   // FX: graphical minis for ReaEQ/ReaComp, buttons for anything else
+  s.lvl = el("div", "lvl opt-level", '<canvas></canvas><div class="lbl">LEVEL</div>');
+  s.lvl.title = "Level history (last " + (LVL_LEN / 10) + " s, dBFS)";
+  s.lvlCv = s.lvl.firstChild;
+  s.top.appendChild(s.lvl);
   s.fxbox = el("div", "fxbox");
   s.fxitems = [];
   var fxs = fxState[i] ? fxState[i].fx : null;
@@ -1135,12 +1149,73 @@ function sendSection(i, s, kind, title, count) {
   return sec;
 }
 
+// level history: track peak sampled every 100 ms, newest on the right
+var LVL_LEN = 150, lvlHist = {};
+setInterval(function () {
+  for (var i in tracks) {
+    var h = lvlHist[i] || (lvlHist[i] = []);
+    h.push(tracks[i].peak / 10);
+    if (h.length > LVL_LEN) h.shift();
+  }
+  for (var k in strips) if (optOn(+k, "level")) drawLevel(strips[k], +k);
+}, 100);
+function drawLevel(s, i) {
+  var g = prepCanvas(s.lvlCv), c = g.c, w = g.w, h = g.h, hist = lvlHist[i] || [], bw = w / LVL_LEN;
+  function Y(db) { return h - meterPos(db) * h; }
+  c.strokeStyle = "#23272d"; c.lineWidth = 1;
+  [-12, -24, -36].forEach(function (d) { var y = Math.round(Y(d)) + .5; c.beginPath(); c.moveTo(0, y); c.lineTo(w, y); c.stroke(); });
+  c.strokeStyle = "#3a414a";
+  var y0 = Math.round(Y(0)) + .5; c.beginPath(); c.moveTo(0, y0); c.lineTo(w, y0); c.stroke();
+  for (var k = 0; k < hist.length; k++) {
+    var d = hist[k];
+    if (d <= -60) continue;
+    c.fillStyle = d > 0 ? "#ff4040" : d > -12 ? "#e8c33a" : "#2fbf5f";
+    var x = w - (hist.length - k) * bw, y = Y(d);
+    c.fillRect(x, y, Math.max(1, bw - (bw > 2 ? 0.5 : 0)), h - y);
+  }
+}
+
 // fader scale marks (dB); positioned with the same curve the fader uses
 var FADER_TICKS = [12, 6, 0, -6, -12, -24, -40, -60, -Infinity];
 
 // meter scale: -60..+6 dBFS, with more room at the top
 var METER_TICKS = [6, 0, -6, -12, -18, -24, -36, -48, -60];
 function meterPos(db) { return db <= -60 ? 0 : Math.min(1, Math.pow((db + 60) / 66, 1.6)); }
+
+// ---------------------------------------------------------------- track selection (mirrors REAPER both ways)
+function isSelected(i) { return tracks[i] ? resolve("sel" + i, tracks[i].flags & 2 ? 1 : 0, 0) == 1 : false; }
+function setSelected(i, on) {
+  setPend("sel" + i, on ? 1 : 0);
+  wwr_req("SET/TRACK/" + i + "/SEL/" + (on ? 1 : 0));
+}
+function selectTrack(i, additive) {
+  if (additive) setSelected(i, !isSelected(i));
+  else {   // like clicking a track in REAPER: only this one
+    for (var k in tracks) if (+k !== i && isSelected(+k)) setSelected(+k, false);
+    setSelected(i, true);
+  }
+  render();
+}
+// controls keep their own behavior; anything else on the strip selects
+var SELECT_IGNORE = "button, input, select, .fader, .knob, .mini, .meter, .sendrow, .sect2 > button";
+function attachSelect(elm, i) {
+  var timer = null, longDone = false;
+  elm.addEventListener("pointerdown", function (e) {
+    longDone = false;
+    if (e.target.closest(SELECT_IGNORE)) return;
+    if (e.pointerType === "mouse") return;
+    timer = setTimeout(function () { timer = null; longDone = true; selectTrack(i, true); }, 500);
+  });
+  ["pointerup", "pointercancel", "pointerleave"].forEach(function (ev) {
+    elm.addEventListener(ev, function () { if (timer) { clearTimeout(timer); timer = null; } });
+  });
+  elm.addEventListener("click", function (e) {
+    if (e.target.closest(SELECT_IGNORE)) return;
+    if (longDone) { longDone = false; return; }
+    selectTrack(i, e.metaKey || e.ctrlKey || e.shiftKey);
+  });
+  elm.addEventListener("contextmenu", function (e) { if (!e.target.closest(SELECT_IGNORE)) e.preventDefault(); });   // long-press menu on touch
+}
 
 function attachFader(s, onVol, getVol) {
   var dragging = false, startY = 0, startPos = 0, lastTap = 0;
@@ -1185,10 +1260,17 @@ function updateStrip(i) {
   var s = strips[i], t = tracks[i];
   if (!s || !t) return;
   var vis = isVisible(i);
-  setCls(s.root, "strip" + (i == 0 ? " master" : "") + (vis ? "" : " hidden") + stripCls(i));
+  setCls(s.root, "strip" + (i == 0 ? " master" : "") + (vis ? "" : " hidden") + (isSelected(i) ? " sel" : "") + stripCls(i));
   setCls(s.cfg, "cfgBtn" + (bankObj().tr[trKey(i)] ? " custom" : ""));
   if (s.hide) { setHtml(s.hide, vis ? EYE : EYE_OFF); setTitle(s.hide, vis ? "Hide track in REAPER" : "Unhide track"); }
-  s.name.style.borderTopColor = trackColor(t.color) || "transparent";
+  var tc = trackColor(t.color);
+  if (s.tc !== tc) {   // track color on the name stripe and the strip outline
+    s.tc = tc;
+    s.name.style.borderTopColor = tc || "transparent";
+    s.root.style.borderColor = tc;
+    s.root.style.boxShadow = tc ? "inset 0 0 0 1px " + tc : "";
+    if (tc) s.root.style.setProperty("--slot", tc); else s.root.style.removeProperty("--slot");   // fader slot
+  }
 
   drawFader(s, resolve("vol" + i, t.vol, Math.max(1e-6, t.vol * 0.001)));
   var pk = t.peak / 10; // dBFS
